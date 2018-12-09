@@ -1,4 +1,6 @@
 FROM scratch
+ARG LISTEN=:8080
+ENV LISTEN=${LISTEN}
 ADD ysnp /
-EXPOSE 8080
-CMD ["/ysnp"]
+EXPOSE ${LISTEN}
+CMD ["/ysnp","-listen","${LISTEN}"]
