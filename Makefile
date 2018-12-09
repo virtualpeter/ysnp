@@ -13,8 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
-REGISTRY_HOST=docker.io
-USERNAME=$(USER)
+#REGISTRY_HOST=docker.io
+#USERNAME=$(USER)
+REGISTRY_HOST=nexus.mlc.extnp.national.com.au:8500
+USERNAME=nab
 NAME=$(shell basename $(CURDIR))
 
 RELEASE_SUPPORT := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))/.make-release-support
