@@ -2,14 +2,41 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/gleicon/go-httplogger"
+  name = "github.com/Sirupsen/logrus"
   packages = ["."]
-  revision = "ab2410a250cab27aaa6f1236bd4e8aad2ec9e837"
+  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
+  version = "v1.2.0"
+
+[[projects]]
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
+  version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/reenjii/logflag"
+  packages = ["."]
+  revision = "ba716fbdc91954854009a1d27c55aa050c12958e"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "b4a75ba826a64a70990f11a225237acd6ef35c9f"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c907020f54baaff0943060a12365c7f7166b6796faa0b9497bf9cc40aae6b63d"
+  inputs-digest = "ecf97918d8ceba224295935079b5ad00d66d34c4c4ed9c0744510694b77aef3a"
   solver-name = "gps-cdcl"
   solver-version = 1
