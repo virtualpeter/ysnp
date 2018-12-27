@@ -7,4 +7,4 @@ install: dep ensure
 
 script: go build
 
-deploy: make release
+#deploy: make release
