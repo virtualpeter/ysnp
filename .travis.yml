@@ -6,7 +6,7 @@ go:
 services:
   - docker
 
-  install: go get -t -v ./...
+install: go get -t -v ./...
 
 script: 
   - go build
