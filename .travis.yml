@@ -5,6 +5,8 @@ go:
 
 install: go get -t -v ./...
 
-script: go build
+script: 
+  - go build
+  - make
 
 #deploy: make release
