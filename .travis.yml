@@ -3,10 +3,15 @@ language: go
 go:
   - "1.11.x"
 
-install: go get -t -v ./...
+services:
+  - docker
+
+  install: go get -t -v ./...
 
 script: 
   - go build
   - make
 
-#deploy: make release
+deploy: 
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - make release

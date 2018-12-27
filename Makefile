@@ -14,7 +14,7 @@
 #   limitations under the License.
 #
 REGISTRY_HOST=docker.io
-USERNAME=$(USER)
+USERNAME=virtualpete
 NAME=$(shell basename $(CURDIR))
 
 RELEASE_SUPPORT := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))/.make-release-support
