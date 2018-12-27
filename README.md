@@ -65,8 +65,8 @@ Usage:
         TCP host:port to listen on for http requests (default ":8080")
   -log flags
         log flags, several allowed [debug,info,warn,error,fatal,color,nocolor,json]
-  -passquery
-        set true if you want to pass request query parameters in redirect
+  -blockquery
+        set if you want to block passing of request query parameters in redirect
   -status int
         http status 3xx code to return (default 301)
   -target_host string
@@ -85,5 +85,5 @@ Usage:
 * TARGET_PORT=""
 * TARGET_PROTO="https"
 * TARGET_PATH=""
-* PASSQUERY="false"
+* BLOCKQUERY="false"
 * LOG="json,info"

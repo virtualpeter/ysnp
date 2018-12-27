@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -17,7 +16,7 @@ var targetProto = flag.String("target_proto", "https", "protocol to redirect to,
 var targetHost = flag.String("target_host", "", "hardcode this domainname in redirect instead of passing on request")
 var targetPort = flag.String("target_port", "", "port to use in redirect, default is to not have an explicit port")
 var targetPath = flag.String("target_path", "", "hardcode this path in redirect, default means use request path")
-var passQuery = flag.Bool("passquery", false, "set true if you want to pass request query parameters in redirect")
+var blockQuery = flag.Bool("blockquery", false, "set if you want to block passing of request query parameters in redirect")
 var redirectStatus = flag.Int("status", http.StatusMovedPermanently, "http status 3xx code to return")
 
 func init() {
@@ -65,36 +64,33 @@ func isValidRedirectStatus(f int) bool {
 
 func redirector(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("req: %+v \n", r)
-	u := r.URL
+	u := r
 	if *targetHost == "" {
-		host, _, err := net.SplitHostPort(r.Host)
-		if err == nil {
-			u.Host = host
-		} else {
-			u.Host = r.Host
-		}
+		u.URL.Host = r.URL.Hostname()
+
 	} else {
-		u.Host = *targetHost
+		u.URL.Host = *targetHost
 	}
 	if *targetPort != "" {
-		host := strings.Split(u.Host, ":")[0]
+		host := strings.Split(u.URL.Host, ":")[0]
 		u.Host = host + ":" + *targetPort
 	}
 	if *targetProto == "http" {
-		u.Scheme = "http"
+		u.URL.Scheme = "http"
 	} else {
-		u.Scheme = "https"
+		u.URL.Scheme = "https"
 	}
 	if *targetPath != "" {
-		u.Path = *targetPath
+		u.URL.Path = *targetPath
 	}
-	if !*passQuery {
-		u.RawQuery = ""
+	if *blockQuery {
+		path := strings.Split(u.URL.Path, "&")[0]
+		u.URL.Path = path
 	}
 
-	log.Debugf("redirect: %+v \n", u)
+	log.Debugf("Location: %s\n", u.URL.String())
 
-	http.Redirect(w, r, u.String(), *redirectStatus)
+	http.Redirect(w, r, u.URL.String(), *redirectStatus)
 }
 
 type stResponseWriter struct {
@@ -110,8 +106,7 @@ func httpLogger(handler http.Handler) http.Handler {
 
 		handler.ServeHTTP(&interceptWriter, r)
 		log.WithFields(log.Fields{
-			"remoteAddr": r.RemoteAddr,
-			// "requestTime": t.Format("02/Jan/2006:15:04:05 -0000"),
+			"remoteAddr":  r.RemoteAddr,
 			"requestTime": t.Format(time.RFC3339),
 			"method":      r.Method,
 			"requestURL":  r.URL.Path,
