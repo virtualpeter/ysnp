@@ -1,0 +1,10 @@
+language: go
+
+go:
+  - "1.11.x"
+
+install: dep ensure
+
+script: go build
+
+deploy: make release
