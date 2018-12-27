@@ -3,7 +3,7 @@ language: go
 go:
   - "1.11.x"
 
-install: dep ensure
+install: go get -t -v ./...
 
 script: go build
 
