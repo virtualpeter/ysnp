@@ -9,7 +9,7 @@ ENV TARGET_HOST=""
 ENV TARGET_PORT=""
 ENV TARGET_PROTO="https"
 ENV TARGET_PATH=""
-ENV PASSQUERY="false"
+ENV BLOCKQUERY="false"
 ENV LOG="json,info"
 
 ADD ysnp /
@@ -21,7 +21,7 @@ CMD [ "/ysnp","-listen",":$PORT",\
       "-target_host","$TARGET_HOST",\
       "-target_port","$TARGET_PORT",\
       "-target_path","$TARGET_PATH",\
-      "-passquery","$PASSQUERY",\
+      "-blockquery","$BLOCKQUERY",\
       "-log","$LOG",\
       "-status","$STATUS"\
     ]
