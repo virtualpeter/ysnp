@@ -13,12 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
-REGISTRY_HOST=$(DOCKER_REGISTRY)
-USERNAME=$(USER)
+
+DOCKER_ORG ?= virtualpete
+REGISTRY ?= docker.io
+
 NAME=$(shell basename $(CURDIR))
 
 RELEASE_SUPPORT := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))/.make-release-support
-IMAGE=$(REGISTRY_HOST)/$(USERNAME)/$(NAME)
+IMAGE=$(REGISTRY)/$(DOCKER_ORG)/$(NAME)
 
 VERSION=$(shell . $(RELEASE_SUPPORT) ; getVersion)
 TAG=$(shell . $(RELEASE_SUPPORT); getTag)
