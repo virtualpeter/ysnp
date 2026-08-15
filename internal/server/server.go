@@ -16,6 +16,7 @@ type Config struct {
 	TargetPath     string
 	BlockQuery     bool
 	RedirectStatus int
+	Routes         map[string]Route
 }
 
 // ValidStatus reports whether code is an allowed redirect status.
@@ -77,9 +78,10 @@ func Handler(cfg Config) http.Handler {
 		cfg.RedirectStatus = http.StatusMovedPermanently
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		loc := cfg.Location(r)
+		resolved, _ := cfg.resolve(r.URL.Path)
+		loc := resolved.Location(r)
 		slog.Debug("redirect", "location", loc)
-		http.Redirect(w, r, loc, cfg.RedirectStatus)
+		http.Redirect(w, r, loc, resolved.RedirectStatus)
 	})
 }
 
@@ -104,12 +106,20 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 }
 
 // Logger logs each request in JSON-friendly structured fields.
-func Logger(next http.Handler) http.Handler {
+func Logger(cfg Config, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t := time.Now()
 		sw := &statusWriter{ResponseWriter: w}
 		next.ServeHTTP(sw, r)
-		slog.Info("request",
+		_, log := cfg.resolve(r.URL.Path)
+		if log.Skip {
+			return
+		}
+		level := slog.LevelInfo
+		if log.Set {
+			level = log.Level
+		}
+		slog.Log(r.Context(), level, "request",
 			"remoteAddr", r.RemoteAddr,
 			"requestTime", t.Format(time.RFC3339),
 			"method", r.Method,

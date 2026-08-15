@@ -1,0 +1,13 @@
+{
+  "/old": {
+    "target_path": "/new",
+    "target_port": "8443",
+    "blockquery": true,
+    "status": 302,
+    "log": "debug"
+  },
+  "/api/": {
+    "blockquery": true,
+    "status": 308
+  }
+}

@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	cfg, listen, logFlags := parseFlags()
+	cfg, listen, logFlags, configPath := parseFlags()
 	configureLog(logFlags)
 
 	if !server.ValidStatus(cfg.RedirectStatus) {
@@ -20,12 +20,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	routes, err := server.LoadRoutes(configPath)
+	if err != nil {
+		slog.Error("load config", "path", configPath, "err", err)
+		os.Exit(1)
+	}
+	cfg.Routes = routes
+
 	slog.Info("configuration",
 		"listenAddr", listen,
 		"targetProto", cfg.TargetProto,
 		"targetHost", cfg.TargetHost,
 		"targetPort", cfg.TargetPort,
 		"targetPath", cfg.TargetPath,
+		"config", configPath,
+		"routes", len(cfg.Routes),
 	)
 
 	mux := http.NewServeMux()
@@ -33,13 +42,13 @@ func main() {
 
 	httpSrv := &http.Server{
 		Addr:    listen,
-		Handler: server.Logger(mux),
+		Handler: server.Logger(cfg, mux),
 	}
 	slog.Error("server stopped", "err", httpSrv.ListenAndServe())
 	os.Exit(1)
 }
 
-func parseFlags() (server.Config, string, string) {
+func parseFlags() (server.Config, string, string, string) {
 	listen := flag.String("listen", defaultListen(), "TCP host:port to listen on for http requests")
 	targetProto := flag.String("target_proto", env("TARGET_PROTO", "https"), "protocol to redirect to, so far the only other supported option is http")
 	targetHost := flag.String("target_host", env("TARGET_HOST", ""), "hardcode this domainname in redirect instead of passing on request")
@@ -48,6 +57,7 @@ func parseFlags() (server.Config, string, string) {
 	blockQuery := flag.Bool("blockquery", envBool("BLOCKQUERY", false), "set if you want to block passing of request query parameters in redirect")
 	redirectStatus := flag.Int("status", envInt("STATUS", http.StatusMovedPermanently), "http status 3xx code to return")
 	logFlags := flag.String("log", env("LOG", "json,info"), "log flags, several allowed [debug,info,warn,error,fatal,color,nocolor,json]")
+	configPath := flag.String("config", env("CONFIG", ""), "optional JSON file mapping URI prefixes to redirect overrides")
 	flag.Parse()
 
 	return server.Config{
@@ -57,7 +67,7 @@ func parseFlags() (server.Config, string, string) {
 		TargetPath:     *targetPath,
 		BlockQuery:     *blockQuery,
 		RedirectStatus: *redirectStatus,
-	}, *listen, *logFlags
+	}, *listen, *logFlags, *configPath
 }
 
 func defaultListen() string {

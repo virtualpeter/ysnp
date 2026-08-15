@@ -68,6 +68,7 @@ Flags win when set. Otherwise the matching environment variable is used.
 | `-blockquery` | `BLOCKQUERY` | `false` | Drop query parameters from the redirect. |
 | `-status` | `STATUS` | `301` | Redirect status: `301`, `302`, `307`, or `308`. |
 | `-log` | `LOG` | `json,info` | Comma-separated log options. |
+| `-config` | `CONFIG` | _(none)_ | Optional JSON file mapping URI prefixes to overrides. |
 
 ### Log flags
 
@@ -104,6 +105,41 @@ services:
       TARGET_HOST: www.example.com
       BLOCKQUERY: "true"
       LOG: json,info
+```
+
+### Route map
+
+An optional JSON object keyed by URI path prefix. Longest prefix wins. `/api` matches `/api` and `/api/v1`, but not `/apiv2`. `/` is a catch-all. Omitted fields inherit the process-wide flags.
+
+```bash
+./bin/ysnp -config ysnp.example.json
+```
+
+```json
+{
+  "/old": {
+    "target_path": "/new",
+    "target_port": "8443",
+    "blockquery": true,
+    "status": 302,
+    "log": "debug"
+  },
+  "/api/": {
+    "blockquery": true,
+    "status": 308
+  }
+}
+```
+
+Per-route `log` uses the same tokens as `-log`, plus `off` to skip the access line. `json` / `color` / `nocolor` on a route are ignored; format is process-global.
+
+In Docker, mount the file and set `CONFIG`:
+
+```bash
+docker run --rm -p 80:8080 \
+  -v "$PWD/ysnp.example.json:/map.json:ro" \
+  -e CONFIG=/map.json \
+  docker.io/virtualpete/ysnp:latest
 ```
 
 ## Development
