@@ -74,6 +74,7 @@ Startup fails unless `-target_host` or `-allowed_hosts` is set. Host matching is
 | `-status` | `STATUS` | `301` | Redirect status: `301`, `302`, `307`, or `308`. |
 | `-log` | `LOG` | `json,info` | Comma-separated log options. |
 | `-config` | `CONFIG` | _(none)_ | Optional JSON file mapping URI prefixes to overrides. |
+| `-version` | | | Print the git-tag version and exit. |
 
 ### Log flags
 

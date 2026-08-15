@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,8 +12,15 @@ import (
 	"github.com/virtualpeter/ysnp/internal/server"
 )
 
+// Set at link time: -ldflags "-X main.version=$(git describe --tags --always --dirty)"
+var version = "dev"
+
 func main() {
-	cfg, listen, logFlags, configPath := parseFlags()
+	cfg, listen, logFlags, configPath, showVersion := parseFlags()
+	if showVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 	configureLog(logFlags)
 
 	if !server.ValidStatus(cfg.RedirectStatus) {
@@ -54,7 +62,7 @@ func main() {
 	os.Exit(1)
 }
 
-func parseFlags() (server.Config, string, string, string) {
+func parseFlags() (server.Config, string, string, string, bool) {
 	listen := flag.String("listen", defaultListen(), "TCP host:port to listen on for http requests")
 	targetProto := flag.String("target_proto", env("TARGET_PROTO", "https"), "protocol to redirect to, so far the only other supported option is http")
 	targetHost := flag.String("target_host", env("TARGET_HOST", ""), "hardcode this domainname in redirect instead of passing on request")
@@ -65,6 +73,7 @@ func parseFlags() (server.Config, string, string, string) {
 	logFlags := flag.String("log", env("LOG", "json,info"), "log flags, several allowed [debug,info,warn,error,fatal,color,nocolor,json]")
 	configPath := flag.String("config", env("CONFIG", ""), "optional JSON file mapping URI prefixes to redirect overrides")
 	allowedHosts := flag.String("allowed_hosts", env("ALLOWED_HOSTS", ""), "comma-separated hostnames permitted in Location (required unless -target_host is set)")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 
 	return server.Config{
@@ -75,7 +84,7 @@ func parseFlags() (server.Config, string, string, string) {
 		BlockQuery:     *blockQuery,
 		RedirectStatus: *redirectStatus,
 		AllowedHosts:   server.ParseAllowedHosts(*allowedHosts),
-	}, *listen, *logFlags, *configPath
+	}, *listen, *logFlags, *configPath, *showVersion
 }
 
 func defaultListen() string {

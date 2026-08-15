@@ -1,9 +1,10 @@
 FROM golang:1.24-alpine AS build
 
+ARG VERSION=dev
 WORKDIR /src
 COPY go.mod ./
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /ysnp ./cmd/ysnp
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /ysnp ./cmd/ysnp
 
 FROM scratch
 
