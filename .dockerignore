@@ -1,0 +1,11 @@
+.git
+.github
+bin
+ysnp
+*.md
+.gitignore
+.dockerignore
+Makefile
+docker-compose.yml
+LICENSE
+VERSION

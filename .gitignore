@@ -1,2 +1,7 @@
-ysnp
-vendor/
+/bin/
+/ysnp
+/vendor/
+*.exe
+*.test
+*.out
+.DS_Store
