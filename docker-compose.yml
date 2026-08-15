@@ -8,4 +8,5 @@ services:
       PORT: "8080"
       STATUS: "301"
       TARGET_PROTO: "https"
+      TARGET_HOST: ${TARGET_HOST:-localhost}
       LOG: "json,info"

@@ -1,9 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -16,6 +18,7 @@ type Config struct {
 	TargetPath     string
 	BlockQuery     bool
 	RedirectStatus int
+	AllowedHosts   []string
 	Routes         map[string]Route
 }
 
@@ -30,39 +33,112 @@ func ValidStatus(code int) bool {
 	}
 }
 
-// Location builds the redirect URL for r.
-func (c Config) Location(r *http.Request) string {
-	u := *r.URL
+// ParseAllowedHosts splits a comma-separated hostname list. Empty parts are dropped.
+func ParseAllowedHosts(s string) []string {
+	if s == "" {
+		return nil
+	}
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		out = append(out, part)
+	}
+	return out
+}
 
+// Validate reports whether the process-wide host policy is usable.
+func (c Config) Validate() error {
+	if c.TargetHost != "" {
+		if err := checkAllowedHost(c.TargetHost); err != nil {
+			return fmt.Errorf("target_host: %w", err)
+		}
+	}
+	for _, h := range c.AllowedHosts {
+		if err := checkAllowedHost(h); err != nil {
+			return fmt.Errorf("allowed_hosts %q: %w", h, err)
+		}
+	}
+	if c.TargetHost == "" && len(c.AllowedHosts) == 0 {
+		return fmt.Errorf("set -target_host or -allowed_hosts")
+	}
+	return nil
+}
+
+func checkAllowedHost(s string) error {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return fmt.Errorf("empty host")
+	}
+	if strings.Contains(s, "://") || strings.ContainsAny(s, "/@") {
+		return fmt.Errorf("must be a hostname, not a URL")
+	}
+	return nil
+}
+
+// Location builds a fresh redirect URL for r. The destination hostname must be allow-listed.
+func (c Config) Location(r *http.Request) (string, error) {
+	scheme := "https"
 	if c.TargetProto == "http" {
-		u.Scheme = "http"
-	} else {
-		u.Scheme = "https"
+		scheme = "http"
 	}
 
-	host := c.TargetHost
-	if host == "" {
-		host = r.Host
-		if host == "" {
-			host = r.URL.Host
-		}
-		if h, _, err := net.SplitHostPort(host); err == nil {
-			host = h
+	dest := c.TargetHost
+	if dest == "" {
+		dest = r.Host
+		if dest == "" {
+			dest = r.URL.Host
 		}
 	}
-	if c.TargetPort != "" {
-		host = net.JoinHostPort(hostname(host), c.TargetPort)
+	dest = hostname(dest)
+	if dest == "" {
+		return "", fmt.Errorf("empty destination host")
 	}
-	u.Host = host
+	if !c.hostAllowed(dest) {
+		return "", fmt.Errorf("host %q is not allowed", dest)
+	}
 
+	path := r.URL.Path
 	if c.TargetPath != "" {
-		u.Path = c.TargetPath
+		path = c.TargetPath
 	}
+	rawQuery := r.URL.RawQuery
 	if c.BlockQuery {
-		u.RawQuery = ""
+		rawQuery = ""
 	}
 
-	return u.String()
+	u := url.URL{
+		Scheme:   scheme,
+		Host:     locationHost(dest, c.TargetPort),
+		Path:     path,
+		RawQuery: rawQuery,
+	}
+	return u.String(), nil
+}
+
+func (c Config) hostAllowed(host string) bool {
+	host = hostname(host)
+	if c.TargetHost != "" && strings.EqualFold(host, hostname(c.TargetHost)) {
+		return true
+	}
+	for _, allowed := range c.AllowedHosts {
+		if strings.EqualFold(host, hostname(strings.TrimSpace(allowed))) {
+			return true
+		}
+	}
+	return false
+}
+
+func locationHost(name, port string) string {
+	if port != "" {
+		return net.JoinHostPort(name, port)
+	}
+	if strings.Contains(name, ":") {
+		return "[" + name + "]"
+	}
+	return name
 }
 
 func hostname(host string) string {
@@ -79,7 +155,11 @@ func Handler(cfg Config) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resolved, _ := cfg.resolve(r.URL.Path)
-		loc := resolved.Location(r)
+		loc, err := resolved.Location(r)
+		if err != nil {
+			http.Error(w, "invalid redirect target", http.StatusBadRequest)
+			return
+		}
 		slog.Debug("redirect", "location", loc)
 		http.Redirect(w, r, loc, resolved.RedirectStatus)
 	})

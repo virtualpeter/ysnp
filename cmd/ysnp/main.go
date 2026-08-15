@@ -27,12 +27,18 @@ func main() {
 	}
 	cfg.Routes = routes
 
+	if err := cfg.Validate(); err != nil {
+		slog.Error("configuration", "err", err)
+		os.Exit(1)
+	}
+
 	slog.Info("configuration",
 		"listenAddr", listen,
 		"targetProto", cfg.TargetProto,
 		"targetHost", cfg.TargetHost,
 		"targetPort", cfg.TargetPort,
 		"targetPath", cfg.TargetPath,
+		"allowedHosts", cfg.AllowedHosts,
 		"config", configPath,
 		"routes", len(cfg.Routes),
 	)
@@ -58,6 +64,7 @@ func parseFlags() (server.Config, string, string, string) {
 	redirectStatus := flag.Int("status", envInt("STATUS", http.StatusMovedPermanently), "http status 3xx code to return")
 	logFlags := flag.String("log", env("LOG", "json,info"), "log flags, several allowed [debug,info,warn,error,fatal,color,nocolor,json]")
 	configPath := flag.String("config", env("CONFIG", ""), "optional JSON file mapping URI prefixes to redirect overrides")
+	allowedHosts := flag.String("allowed_hosts", env("ALLOWED_HOSTS", ""), "comma-separated hostnames permitted in Location (required unless -target_host is set)")
 	flag.Parse()
 
 	return server.Config{
@@ -67,6 +74,7 @@ func parseFlags() (server.Config, string, string, string) {
 		TargetPath:     *targetPath,
 		BlockQuery:     *blockQuery,
 		RedirectStatus: *redirectStatus,
+		AllowedHosts:   server.ParseAllowedHosts(*allowedHosts),
 	}, *listen, *logFlags, *configPath
 }
 

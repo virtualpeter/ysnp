@@ -6,6 +6,8 @@
 
 A small HTTP redirector. Sit it on port 80 and send every request to the same host and path over HTTPS.
 
+The destination hostname must be listed in `-target_host` and/or `-allowed_hosts`. Unknown hosts get `400` and no `Location`.
+
 ```
 http://example.com/foo?q=1  →  301  →  https://example.com/foo?q=1
 ```
@@ -22,7 +24,7 @@ flowchart LR
 ## Quick start
 
 ```bash
-go run ./cmd/ysnp
+go run ./cmd/ysnp -allowed_hosts localhost
 ```
 
 ```bash
@@ -49,7 +51,7 @@ go build -o bin/ysnp ./cmd/ysnp
 
 ```bash
 make docker
-docker run --rm -p 80:8080 docker.io/virtualpete/ysnp:latest
+docker run --rm -p 80:8080 -e TARGET_HOST=www.example.com docker.io/virtualpete/ysnp:latest
 ```
 
 Override image naming with `REGISTRY` and `DOCKER_ORG` (defaults: `docker.io` / `virtualpete`).
@@ -58,11 +60,14 @@ Override image naming with `REGISTRY` and `DOCKER_ORG` (defaults: `docker.io` / 
 
 Flags win when set. Otherwise the matching environment variable is used.
 
+Startup fails unless `-target_host` or `-allowed_hosts` is set. Host matching is exact and case-insensitive (`example.com.evil.org` is not `example.com`).
+
 | Flag | Env | Default | Description |
 | --- | --- | --- | --- |
 | `-listen` | `LISTEN` or `PORT` | `:8080` | Address to listen on. `PORT=8080` becomes `:8080`. |
 | `-target_proto` | `TARGET_PROTO` | `https` | Scheme for the Location URL (`https` or `http`). |
-| `-target_host` | `TARGET_HOST` | request host | Host to redirect to. Empty keeps the incoming `Host`. |
+| `-target_host` | `TARGET_HOST` | _(none)_ | Force this hostname in Location. Implicitly allow-listed. |
+| `-allowed_hosts` | `ALLOWED_HOSTS` | _(none)_ | Comma-separated hostnames permitted when `-target_host` is empty. |
 | `-target_port` | `TARGET_PORT` | _(none)_ | Explicit port in the Location URL. |
 | `-target_path` | `TARGET_PATH` | request path | Hardcoded path. Empty keeps the request path. |
 | `-blockquery` | `BLOCKQUERY` | `false` | Drop query parameters from the redirect. |
@@ -90,7 +95,7 @@ Force every request onto a canonical host:
 Redirect to HTTPS on 8443 and strip query strings:
 
 ```bash
-./bin/ysnp -target_port 8443 -blockquery
+./bin/ysnp -allowed_hosts example.com -target_port 8443 -blockquery
 ```
 
 Same thing in Compose:
@@ -112,7 +117,7 @@ services:
 An optional JSON object keyed by URI path prefix. Longest prefix wins. `/api` matches `/api` and `/api/v1`, but not `/apiv2`. `/` is a catch-all. Omitted fields inherit the process-wide flags.
 
 ```bash
-./bin/ysnp -config ysnp.example.json
+./bin/ysnp -target_host www.example.com -config ysnp.example.json
 ```
 
 ```json
@@ -139,6 +144,7 @@ In Docker, mount the file and set `CONFIG`:
 docker run --rm -p 80:8080 \
   -v "$PWD/ysnp.example.json:/map.json:ro" \
   -e CONFIG=/map.json \
+  -e TARGET_HOST=www.example.com \
   docker.io/virtualpete/ysnp:latest
 ```
 

@@ -234,6 +234,7 @@ func TestHandlerUsesRoute(t *testing.T) {
 	h := Handler(Config{
 		TargetProto:    "https",
 		RedirectStatus: http.StatusMovedPermanently,
+		AllowedHosts:   []string{"example.com"},
 		Routes: map[string]Route{
 			"/old": {
 				TargetPath: strPtr("/new"),
